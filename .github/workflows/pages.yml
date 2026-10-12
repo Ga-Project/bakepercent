@@ -50,7 +50,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # サブパス配信なので basePath を注入する（未注入だと全アセットが 404）。
       - run: pnpm build
+        env:
+          NEXT_PUBLIC_BASE_PATH: /bakepercent
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out
