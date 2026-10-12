@@ -1,0 +1,799 @@
+/* ベイクパーセント — 製品固有デザインシステム「計量の背骨 (Measuring Spine)」。
+ * 小麦粉=100% を不動の基準線として据え、各材料はそこから比率ぶんだけ横に伸びる筋で連なる。
+ * 共有テンプレは使わない。この製品専用にゼロから構築。 */
+
+/* ---- 機能的リセット（a11y ベースライン） ---- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+* {
+  margin: 0;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+}
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---- カラートークン（light 既定 → dark は prefers-color-scheme と data-theme の二段構え） ---- */
+:root {
+  --bp-bg: #faf7f0;
+  --bp-surface: #ffffff;
+  --bp-sunk: #f3eee4;
+  --bp-text: #26221a;
+  --bp-muted: #6b6459;
+  --bp-accent: #556b10;
+  --bp-accent-weak: #eef0dc;
+  --bp-accent-contrast: #ffffff;
+  --bp-border: #e4ddd0;
+  --bp-danger: #c0341c;
+  --bp-danger-weak: #f9e4df;
+
+  /* 温度ランプ（データ符号化専用・chrome には使わない） */
+  --bp-temp-cold: #2f7db0;
+  --bp-temp-cool: #6aa6c2;
+  --bp-temp-mid: #b7a283;
+  --bp-temp-warm: #d08a3c;
+  --bp-temp-hot: #b4501f;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --pill: 999px;
+
+  --step-1: 4px;
+  --step-2: 8px;
+  --step-3: 12px;
+  --step-4: 16px;
+  --step-5: 24px;
+  --step-6: 32px;
+
+  --font-jp: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Meiryo", sans-serif;
+  --font-sys: system-ui, -apple-system, "Segoe UI", Roboto, var(--font-jp);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bp-bg: #1a1712;
+    --bp-surface: #241f18;
+    --bp-sunk: #14110d;
+    --bp-text: #f2ebdd;
+    --bp-muted: #a89e8c;
+    --bp-accent: #b7d24a;
+    --bp-accent-weak: #2e3416;
+    --bp-accent-contrast: #1a1712;
+    --bp-border: #3a3327;
+    --bp-danger: #ff9b84;
+    --bp-danger-weak: #3a211b;
+  }
+}
+
+:root[data-theme="light"] {
+  --bp-bg: #faf7f0;
+  --bp-surface: #ffffff;
+  --bp-sunk: #f3eee4;
+  --bp-text: #26221a;
+  --bp-muted: #6b6459;
+  --bp-accent: #556b10;
+  --bp-accent-weak: #eef0dc;
+  --bp-accent-contrast: #ffffff;
+  --bp-border: #e4ddd0;
+  --bp-danger: #c0341c;
+  --bp-danger-weak: #f9e4df;
+}
+:root[data-theme="dark"] {
+  --bp-bg: #1a1712;
+  --bp-surface: #241f18;
+  --bp-sunk: #14110d;
+  --bp-text: #f2ebdd;
+  --bp-muted: #a89e8c;
+  --bp-accent: #b7d24a;
+  --bp-accent-weak: #2e3416;
+  --bp-accent-contrast: #1a1712;
+  --bp-border: #3a3327;
+  --bp-danger: #ff9b84;
+  --bp-danger-weak: #3a211b;
+}
+
+/* ---- 基盤 ---- */
+html,
+body {
+  background: var(--bp-bg);
+  color: var(--bp-text);
+  font-family: var(--font-sys);
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+body {
+  min-height: 100dvh;
+}
+.num {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--bp-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 20;
+  background: var(--bp-accent);
+  color: var(--bp-accent-contrast);
+  padding: var(--step-2) var(--step-4);
+  border-radius: 0 0 var(--r-md) 0;
+  font-weight: 650;
+}
+.skip-link:focus {
+  left: 0;
+}
+
+/* ---- レイアウト ---- */
+.shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--step-4) var(--step-4) 128px;
+}
+
+/* ---- ヘッダー / hero ---- */
+.masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--step-3);
+  padding-block: var(--step-4);
+}
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: var(--step-2);
+}
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-sm);
+  background: var(--bp-accent);
+  color: var(--bp-accent-contrast);
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex: none;
+}
+.brand-name {
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
+}
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--step-1);
+  min-height: 44px;
+  padding: 0 var(--step-3);
+  border: 1px solid var(--bp-border);
+  border-radius: var(--pill);
+  background: var(--bp-surface);
+  color: var(--bp-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.theme-toggle:hover {
+  color: var(--bp-text);
+  border-color: var(--bp-accent);
+}
+
+.hero {
+  padding: var(--step-3) 0 var(--step-5);
+  border-bottom: 1px solid var(--bp-border);
+  margin-bottom: var(--step-5);
+}
+.hero .eyebrow {
+  color: var(--bp-accent);
+  font-weight: 650;
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+.hero h1 {
+  font-size: clamp(1.6rem, 5.5vw, 2.2rem);
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: var(--step-2);
+  max-width: 22ch;
+}
+.hero .lead {
+  color: var(--bp-muted);
+  margin-top: var(--step-3);
+  max-width: 46ch;
+}
+
+/* ---- セクション見出し ---- */
+.section {
+  margin-top: var(--step-6);
+}
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--step-2) var(--step-3);
+  margin-bottom: var(--step-3);
+  flex-wrap: wrap;
+}
+.section-head h2 {
+  font-size: 1.2rem;
+  font-weight: 650;
+  min-width: 0;
+}
+.section-head .hint {
+  color: var(--bp-muted);
+  font-size: 0.8125rem;
+}
+
+/* ==== 材料台帳（背骨 + 横筋） ==== */
+.ledger {
+  border: 1px solid var(--bp-border);
+  border-radius: var(--r-lg);
+  background: var(--bp-surface);
+  overflow: hidden;
+}
+
+/* 100% 基準線（背骨）— reach トラックを縦に貫く破線 */
+.spine-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--step-2);
+  padding: var(--step-2) var(--step-3);
+  background: var(--bp-sunk);
+  border-bottom: 1px solid var(--bp-border);
+  font-size: 0.75rem;
+  color: var(--bp-muted);
+}
+.spine-legend .notch {
+  width: 2px;
+  height: 14px;
+  background: var(--bp-accent);
+  border-radius: 2px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: stretch;
+  gap: var(--step-2) var(--step-3);
+  padding: var(--step-3);
+  border-bottom: 1px solid var(--bp-border);
+  position: relative;
+}
+.row:last-child {
+  border-bottom: 0;
+}
+.row.is-flour {
+  background: var(--bp-accent-weak);
+}
+
+/* reach 帯（背骨から伸びる横筋）— 行の下敷き */
+.reach {
+  grid-column: 1 / -1;
+  position: relative;
+  height: 12px;
+  border-radius: var(--pill);
+  background: var(--bp-sunk);
+  order: 3;
+}
+.reach-fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  background: var(--bp-accent);
+  border-radius: var(--pill);
+  transition: width 200ms ease-out;
+}
+.reach.is-danger .reach-fill {
+  min-width: 16px; /* 負値/不正で幅0でも危険表現が消えないように最小幅を確保 */
+  background: repeating-linear-gradient(
+    45deg,
+    var(--bp-danger),
+    var(--bp-danger) 5px,
+    transparent 5px,
+    transparent 10px
+  );
+}
+/* 100% ノッチ（背骨）— 全 reach トラックの同じ固定 x に常設し、行をまたいで縦一本に読ませる。
+   位置は page.tsx の SPINE_POS(62%) と同期。粉100%はここに届き、超過はここを越えて伸びる。 */
+.reach-hundred {
+  position: absolute;
+  inset-block: -4px;
+  width: 2px;
+  background: var(--bp-accent);
+  opacity: 0.85;
+  transform: translateX(-1px);
+  border-radius: 2px;
+}
+
+.row-main {
+  display: flex;
+  align-items: center;
+  gap: var(--step-2);
+  min-width: 0;
+  order: 1;
+}
+.ing-name {
+  flex: 1 1 auto;
+  min-width: 8ch;
+  min-height: 44px;
+  padding: 0 var(--step-3);
+  border: 1px solid var(--bp-border);
+  /* 入力欄の塗りはコンテナと同系のため、境界の可視化を下線で担保する（1.4.11 対 3:1）。 */
+  border-bottom: 2px solid var(--bp-muted);
+  border-radius: var(--r-sm);
+  background: var(--bp-bg);
+}
+.row.is-flour .ing-name {
+  background: transparent;
+  border-color: transparent;
+  font-weight: 650;
+  padding-left: 0;
+}
+.pin-tag {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 var(--step-2);
+  border-radius: var(--pill);
+  background: var(--bp-accent);
+  color: var(--bp-accent-contrast);
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+.row-fields {
+  display: flex;
+  align-items: center;
+  gap: var(--step-2);
+  order: 2;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.field label {
+  font-size: 0.7rem;
+  color: var(--bp-muted);
+  letter-spacing: 0.02em;
+}
+.field .inp {
+  width: 5.4rem;
+  min-height: 44px;
+  text-align: right;
+  padding: 0 var(--step-2);
+  border: 1px solid var(--bp-border);
+  /* 可視下線で入力境界を 3:1 以上に（1.4.11）。フォーカス時は outline(accent) が上書き。 */
+  border-bottom: 2px solid var(--bp-muted);
+  border-radius: var(--r-sm);
+  background: var(--bp-surface);
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+.field .inp.is-error {
+  border-color: var(--bp-danger);
+  background: var(--bp-danger-weak);
+}
+.field .inp:disabled {
+  color: var(--bp-muted);
+  background: var(--bp-sunk);
+}
+.unit {
+  font-size: 0.8rem;
+  color: var(--bp-muted);
+  margin-left: 2px;
+}
+
+.icon-btn {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--bp-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+.icon-btn:hover {
+  color: var(--bp-danger);
+  border-color: var(--bp-border);
+}
+
+.row-error {
+  grid-column: 1 / -1;
+  order: 4;
+  display: flex;
+  align-items: center;
+  gap: var(--step-1);
+  color: var(--bp-danger);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.ledger-actions {
+  display: flex;
+  gap: var(--step-2);
+  padding: var(--step-3);
+  background: var(--bp-sunk);
+}
+.btn {
+  min-height: 44px;
+  padding: 0 var(--step-4);
+  border-radius: var(--r-md);
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--bp-border);
+  background: var(--bp-surface);
+  color: var(--bp-text);
+}
+.btn:hover {
+  border-color: var(--bp-accent);
+}
+.btn-accent {
+  background: var(--bp-accent);
+  color: var(--bp-accent-contrast);
+  border-color: var(--bp-accent);
+}
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--bp-muted);
+}
+.btn-ghost:hover {
+  color: var(--bp-text);
+}
+
+/* ---- 空状態 / ゴースト行 ---- */
+.ghost {
+  padding: var(--step-5) var(--step-3);
+  text-align: center;
+  color: var(--bp-muted);
+}
+.ghost strong {
+  color: var(--bp-text);
+}
+
+/* ==== 温度パネル（DDT / 発酵） ==== */
+.panel {
+  border: 1px solid var(--bp-border);
+  border-radius: var(--r-lg);
+  background: var(--bp-surface);
+  overflow: hidden;
+}
+.panel-ramp {
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--bp-temp-cold),
+    var(--bp-temp-cool),
+    var(--bp-temp-mid),
+    var(--bp-temp-warm),
+    var(--bp-temp-hot)
+  );
+}
+.panel-body {
+  padding: var(--step-4);
+}
+.grid-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--step-3);
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stack label {
+  font-size: 0.78rem;
+  color: var(--bp-muted);
+}
+.stack .inp {
+  min-height: 44px;
+  padding: 0 var(--step-3);
+  border: 1px solid var(--bp-border);
+  border-bottom: 2px solid var(--bp-muted);
+  border-radius: var(--r-sm);
+  background: var(--bp-bg);
+  font-size: 1rem;
+  text-align: right;
+}
+.stack .inp.is-error {
+  border-color: var(--bp-danger);
+  background: var(--bp-danger-weak);
+}
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--bp-border);
+  border-radius: var(--pill);
+  background: var(--bp-sunk);
+}
+.seg button {
+  min-height: 44px;
+  padding: 0 var(--step-3);
+  border: 0;
+  border-radius: var(--pill);
+  background: transparent;
+  color: var(--bp-muted);
+  font-weight: 550;
+  cursor: pointer;
+}
+
+/* 摩擦係数プリセット — 押せると分かる pill（透明ゴーストにしない・44px 確保） */
+.preset-row {
+  display: flex;
+  gap: var(--step-2);
+  margin-top: var(--step-2);
+  flex-wrap: wrap;
+}
+.preset {
+  min-height: 44px;
+  padding: 0 var(--step-3);
+  border: 1px solid var(--bp-border);
+  border-radius: var(--pill);
+  background: var(--bp-accent-weak);
+  color: var(--bp-text);
+  font-size: 0.85rem;
+  font-weight: 550;
+  cursor: pointer;
+}
+.preset:hover {
+  border-color: var(--bp-accent);
+}
+.preset[aria-pressed="true"] {
+  background: var(--bp-accent);
+  color: var(--bp-accent-contrast);
+  border-color: var(--bp-accent);
+}
+.seg button[aria-pressed="true"] {
+  background: var(--bp-surface);
+  color: var(--bp-text);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+}
+
+.result {
+  display: flex;
+  align-items: center;
+  gap: var(--step-4);
+  margin-top: var(--step-4);
+  padding: var(--step-4);
+  border-radius: var(--r-md);
+  background: var(--bp-sunk);
+}
+.result.is-danger {
+  background: var(--bp-danger-weak);
+}
+.result .big {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.result .big .unit {
+  font-size: 1rem;
+}
+.result .caption {
+  color: var(--bp-muted);
+  font-size: 0.82rem;
+}
+.thermo {
+  flex: none;
+}
+
+/* ---- 発酵カーブ + 参照テーブル ---- */
+.curve-wrap {
+  margin-top: var(--step-4);
+}
+.curve {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--r-md);
+  background: var(--bp-sunk);
+}
+.slider {
+  width: 100%;
+  height: 44px;
+  margin-top: var(--step-2);
+  accent-color: var(--bp-accent);
+}
+.ferment-readout {
+  display: flex;
+  align-items: baseline;
+  gap: var(--step-2);
+  margin-top: var(--step-2);
+}
+.ferment-readout .big {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+table.ref {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--step-4);
+  font-size: 0.9rem;
+}
+table.ref th,
+table.ref td {
+  padding: var(--step-2) var(--step-3);
+  text-align: right;
+  border-bottom: 1px solid var(--bp-border);
+}
+table.ref th:first-child,
+table.ref td:first-child {
+  text-align: left;
+  color: var(--bp-muted);
+}
+table.ref tr.is-current td {
+  background: var(--bp-accent-weak);
+  font-weight: 650;
+}
+
+/* ---- 復元バナー ---- */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--step-3);
+  padding: var(--step-3) var(--step-4);
+  margin-bottom: var(--step-4);
+  border: 1px solid var(--bp-border);
+  border-radius: var(--r-md);
+  background: var(--bp-accent-weak);
+  font-size: 0.9rem;
+}
+.banner .grow {
+  flex: 1;
+}
+
+/* ---- 総量サマリ（sticky bar） ---- */
+.tally {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  background: var(--bp-surface);
+  border-top: 1px solid var(--bp-border);
+  padding: var(--step-2) var(--step-4) calc(var(--step-2) + env(safe-area-inset-bottom));
+}
+.tally-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--step-4);
+  flex-wrap: wrap;
+}
+.tally .metric {
+  display: flex;
+  flex-direction: column;
+}
+.tally .metric .k {
+  font-size: 0.72rem;
+  color: var(--bp-muted);
+}
+.tally .metric .v {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.tally .pulse {
+  animation: tally-pulse 400ms ease-out;
+}
+@keyframes tally-pulse {
+  from {
+    background: var(--bp-accent-weak);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+/* ---- フッター ---- */
+.foot {
+  margin-top: var(--step-6);
+  padding-top: var(--step-4);
+  border-top: 1px solid var(--bp-border);
+  color: var(--bp-muted);
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--step-2);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- デスクトップ 2ペイン ---- */
+@media (min-width: 760px) {
+  .cols {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: var(--step-5);
+    align-items: start;
+  }
+  .cols .section {
+    margin-top: 0;
+  }
+  .panel-sticky {
+    position: sticky;
+    top: var(--step-4);
+  }
+}
+
+/* ---- 狭幅（スマホ）: 材料行を段組みして名前が潰れないようにする ---- */
+@media (max-width: 520px) {
+  .section-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .row {
+    grid-template-columns: 1fr;
+  }
+  .row-main {
+    grid-column: 1;
+  }
+  .row-fields {
+    grid-column: 1;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .field .inp {
+    width: 4.8rem;
+  }
+}
+
+/* ---- モーション低減 ---- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
