@@ -5,6 +5,8 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "404 — ベイクパーセント",
   robots: { index: false, follow: false },
+  // 404 はトップの canonical を継承させない。
+  alternates: {},
 };
 
 export default function NotFound() {

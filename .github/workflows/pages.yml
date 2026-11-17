@@ -54,6 +54,10 @@ jobs:
       - run: pnpm build
         env:
           NEXT_PUBLIC_BASE_PATH: /bakepercent
+      # 公開前に出力を検査する（basePath 欠落などの回帰で Pages へ進まない）。
+      - run: pnpm test
+        env:
+          NEXT_PUBLIC_BASE_PATH: /bakepercent
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out

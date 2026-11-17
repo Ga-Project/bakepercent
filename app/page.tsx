@@ -5,6 +5,8 @@
 // 計算は lib/baking.mjs（UI とテストで共有する単一の正）に集約している。
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import JsonLd from "./JsonLd";
+import { WEB_APP_JSON_LD } from "./site";
 import {
   isNum,
   roundTo,
@@ -331,6 +333,7 @@ export default function Home() {
       </a>
 
       <div className="shell">
+        <JsonLd nodes={[WEB_APP_JSON_LD]} />
         <header className="masthead">
           <div className="brand">
             <span className="brand-mark" aria-hidden="true">
