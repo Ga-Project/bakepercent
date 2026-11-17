@@ -1,6 +1,6 @@
 // 公開メタ・basePath の回帰テスト。static export の出力（out/）を検査するので pnpm build 後に走る。
 // 期待値は Pages 配信の実 URL。basePath 無しでビルドすると意図的に落ちる。
-// out/ が無い場合、CI では失敗させる（検査せずに緑になるのを防ぐ）。ローカルのみ skip。
+// out/ が無い場合、GitHub Actions では失敗させる（検査せずに緑になるのを防ぐ）。ローカルのみ skip。
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -8,7 +8,7 @@ import { existsSync, readFileSync } from "node:fs";
 const BASE = "https://ga-project.github.io/bakepercent/";
 const out = (p) => new URL(`../out/${p}`, import.meta.url);
 const hasOut = existsSync(out("index.html"));
-const opts = { skip: !hasOut && !process.env.CI };
+const opts = { skip: !hasOut && process.env.GITHUB_ACTIONS !== "true" };
 const read = (p) => readFileSync(out(p), "utf8");
 
 test("OGP 画像は 1200x630 の PNG", () => {
@@ -47,6 +47,13 @@ test("sitemap.xml と robots.txt が実 URL を指す", opts, () => {
 
 test("Pages ワークフローが build と test の両方に basePath を渡す", () => {
   const wf = readFileSync(new URL("../.github/workflows/pages.yml", import.meta.url), "utf8");
-  const m = wf.match(/- run: pnpm build\n\s+env:\n\s+NEXT_PUBLIC_BASE_PATH: \/bakepercent\n[^\n]*\n\s+- run: pnpm test\n\s+env:\n\s+NEXT_PUBLIC_BASE_PATH: \/bakepercent/);
-  assert.ok(m, "pnpm build / pnpm test の env に NEXT_PUBLIC_BASE_PATH: /bakepercent が無い");
+  // "- run: pnpm <cmd>" から次の "- " 始まりの step までを 1 step として取り出す。
+  const step = (cmd) => {
+    const m = wf.match(new RegExp(`- run: pnpm ${cmd}\\r?\\n((?:\\s+(?!- )[^\\n]*\\n?)*)`));
+    assert.ok(m, `pnpm ${cmd} の step が無い`);
+    return m[1];
+  };
+  for (const cmd of ["build", "test"]) {
+    assert.match(step(cmd), /NEXT_PUBLIC_BASE_PATH:\s*\/bakepercent\s*$/m, `pnpm ${cmd} に basePath 無し`);
+  }
 });

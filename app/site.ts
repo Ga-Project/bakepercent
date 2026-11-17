@@ -4,12 +4,12 @@
 // basePath は next.config.mjs と同じ NEXT_PUBLIC_BASE_PATH を使う（pages.yml が渡す）。
 
 const ORIGIN = "https://ga-project.github.io";
-// 末尾スラッシュを除いて正規化する（"/bakepercent/" と渡されても "//" が混じらない）。
-const BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH || "").replace(/\/+$/, "");
+// next.config.mjs と同じ値（末尾スラッシュ無し。Next が末尾スラッシュ付きを拒否する）。
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 // CI のビルドは Pages へ公開される。basePath 無しだと canonical / sitemap が別サイトの
 // ルートを自称し、全アセットも 404 になるため、静かに進めず失敗させる。
-if (process.env.CI && !BASE_PATH) {
+if (process.env.GITHUB_ACTIONS === "true" && !BASE_PATH) {
   throw new Error("NEXT_PUBLIC_BASE_PATH が未設定です（Pages 配信には /bakepercent が必要）");
 }
 
